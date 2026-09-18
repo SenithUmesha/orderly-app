@@ -1,0 +1,77 @@
+name: Docs integrity
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "**/*.md"
+      - ".github/workflows/docs-check.yml"
+  pull_request:
+    paths:
+      - "**/*.md"
+      - ".github/workflows/docs-check.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  docs:
+    name: Check Markdown
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Validate Markdown links and conflict markers
+        shell: python
+        run: |
+          import pathlib
+          import re
+          import sys
+          import urllib.parse
+
+          root = pathlib.Path(".").resolve()
+          markdown_files = sorted(pathlib.Path(".").rglob("*.md"))
+          problems = []
+
+          link_pattern = re.compile(r'!?\[[^\]]*\]\(([^)]+)\)')
+
+          for md in markdown_files:
+              text = md.read_text(encoding="utf-8")
+
+              for line_no, line in enumerate(text.splitlines(), 1):
+                  if line.startswith(("<<<<<<<", "=======", ">>>>>>>")):
+                      problems.append(f"{md}:{line_no}: merge-conflict marker found")
+
+              for match in link_pattern.finditer(text):
+                  raw_target = match.group(1).strip()
+                  if not raw_target:
+                      continue
+
+                  if raw_target.startswith("<") and raw_target.endswith(">"):
+                      raw_target = raw_target[1:-1]
+
+                  target = raw_target.split()[0].strip("'\"")
+                  if target.startswith(("http://", "https://", "mailto:", "tel:", "#", "data:")):
+                      continue
+
+                  target = urllib.parse.unquote(target.split("#", 1)[0].split("?", 1)[0])
+                  if not target:
+                      continue
+
+                  candidate = (md.parent / target).resolve()
+                  try:
+                      candidate.relative_to(root)
+                  except ValueError:
+                      problems.append(f"{md}: local link escapes repository: {target}")
+                      continue
+
+                  if not candidate.exists():
+                      problems.append(f"{md}: broken relative link: {target}")
+
+          if problems:
+              print("\n".join(problems))
+              sys.exit(1)
+
+          print(f"Checked {len(markdown_files)} Markdown files.")
