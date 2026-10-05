@@ -32,6 +32,23 @@
 
 ---
 
+## current release
+
+The private production app is currently at **Orderly 1.13.2 · build 92**.
+
+The latest release line focused on making the daily follow-up loop faster and clearer:
+
+- **Needs Attention** on Dashboard for overdue orders, due-today work, payment follow-ups, and unanswered customers
+- reusable, editable **WhatsApp message templates** with localized defaults
+- **Order Again** for repeat orders using the normal creation flow
+- **Recent and Favourite items** for faster order entry
+- persistent **Chat, Call, and More** actions while reviewing an order
+- clearer labelled receipt and reply actions
+- direct WhatsApp chat with no forced prefilled message
+- release-time billing configuration checks so Pro pricing and purchases remain available in production builds
+
+---
+
 ## why i built it
 
 A lot of small businesses do not need a giant ERP.
@@ -42,11 +59,10 @@ They need to know:
 - how much is still unpaid
 - what needs to be delivered next
 - whether they already replied to the customer
-- what the business actually made today
+- what needs attention today
+- what the business actually made
 
 And they need all of that to keep working when the connection is bad.
-
-Orderly started from that problem. The product is intentionally mobile-first: capture the order quickly, keep the local app responsive, and let synchronization happen around the user instead of making the user wait for the network.
 
 ```text
 customer messages you
@@ -60,7 +76,9 @@ customer + balance + dashboard update
 sync catches up when the network is ready
 ```
 
-That local-first loop ended up becoming the most interesting part of the project.
+That local-first loop is the core of the product.
+
+---
 
 ## a quick look
 
@@ -71,65 +89,76 @@ That local-first loop ended up becoming the most interesting part of the project
   <img src="https://www.orderlyapp.app/images/screenshot-customers.png" width="23%" alt="Orderly customer list" />
 </p>
 
+---
+
 ## what it does
 
-### 📦 Fast order capture
+### fast order capture
 
-Orderly is built around getting an order out of a chat and into a proper record without turning that into admin work.
+Orders can include multiple line items, customer details, payment state, delivery or pickup information, order source, notes, discounts, delivery fees, partial payments, settlement dates, courier details, and custom timestamps for past orders.
 
-An order can include multiple line items, customer details, payment state, delivery or pickup information, order source, notes, discounts, delivery fees, partial payments, settlement dates, courier details, and custom timestamps for past orders.
+Known customers can be filled from phone history. Recent and favourite items speed up repeat entry, while **Order Again** lets a seller start from an existing order and review it before saving a new one.
 
-Known customers can be filled from phone history, and repeat information is reused wherever possible to keep the flow fast.
+### follow-up that stays actionable
 
-### 💸 Payments that are actually useful
+The latest release adds a dedicated **Needs Attention** surface to Dashboard. It brings together overdue work, orders due today, payment follow-ups, and unanswered customers with direct links back into matching order views.
 
-Orders can be unpaid, partially paid, or paid. Balance due is calculated from the real charge and the advance already received.
+Daily reminders can surface the same operational context and open Dashboard when tapped.
 
-That same state feeds order cards, customer history, dashboard metrics, receipts, and reporting so payment information is not duplicated across separate features.
+### customer communication
 
-### 🧾 Receipts without another tool
+Order detail keeps **Chat, Call, and More** visible while scrolling, so contact actions do not disappear on long orders.
 
-Completed orders can produce branded PDF receipts from inside the app.
+WhatsApp can open as a blank chat or use reusable message templates for common moments. Receipt and reply actions are fully labelled instead of hidden behind ambiguous icons.
+
+### payments that are actually useful
+
+Orders can be unpaid, partially paid, or paid. Balance due is calculated from the real order charge and advance already received.
+
+That state feeds order cards, customer history, dashboard metrics, receipts, and reporting.
+
+### receipts without another tool
+
+Completed orders can produce branded PDF receipts inside the app.
 
 Business details, logo, accent colour, payment information, line items, totals, and customer details flow into the generated document, which can be previewed and shared directly.
 
-### 👥 Customer history grows from the orders
+### customer history grows from the orders
 
-The customer side is derived from the work already being logged.
+Customer profiles surface order history, lifetime value, unpaid balance, repeat-customer context, frequently ordered items, and quick contact actions.
 
-Profiles surface order history, lifetime value, unpaid balance, repeat-customer context, frequently ordered items, and quick contact actions. Phone numbers are normalized with the selected seller market in mind so matching stays useful across countries.
+Phone numbers are normalized using the selected seller market so matching remains useful across countries.
 
-### 📊 A dashboard for the questions that come up every day
+### dashboard built around decisions
 
-The dashboard focuses on operational information instead of vanity charts:
+The dashboard focuses on operational information:
 
-- revenue today / this week / across longer ranges
+- revenue today / this week / longer ranges
 - orders created today
 - pending work
 - deliveries due
 - outstanding balances
-- customers still waiting for a reply
+- customers waiting for a reply
+- Needs Attention follow-ups
 - best customers and popular items
 
-Most dashboard cards deep-link back into filtered order views, so the analytics remain connected to an action.
+Most cards deep-link back into filtered order views so analytics stay connected to an action.
 
-### 🌍 Built beyond one hard-coded market
+### built beyond one hard-coded market
 
-Seller-market configuration drives things like currency, date formatting, phone normalization, payment options, sample data, suggested cities, and courier hints.
+Seller-market configuration drives currency, date formatting, phone normalization, payment options, sample data, suggested cities, and courier hints.
 
 The core UI is localized in **English, Sinhala, and Tamil**.
 
-### 📤 Your data is not trapped
+### your data is not trapped
 
-Orderly supports CSV import/export, PDF export, printing, and receipt sharing. The idea is simple: a business tool should make it easy to take your own records with you.
+Orderly supports CSV import/export, PDF export, printing, and receipt sharing.
 
 ---
 
 ## the fun part: sync
 
 Orderly treats the local SQLite database as the working copy of the app.
-
-A normal write does not wait for Firestore:
 
 ```text
 UI action
@@ -148,23 +177,15 @@ Drift / SQLite transaction
          Firestore
 ```
 
-When connectivity returns, the sync engine drains pending mutations and then refreshes remote state.
+When connectivity returns, the sync engine drains pending mutations and refreshes remote state.
 
-The important bit is what happens during that refresh: remote data cannot simply replace the local database because there may be local edits that have not reached the server yet. The merge path preserves dirty rows, only removes clean rows that disappeared remotely, and only applies remote rows when they do not overwrite pending local work.
+Remote data cannot simply replace the local database because there may be local edits that have not reached the server yet. The merge path preserves dirty rows, removes only clean rows that disappeared remotely, and applies remote rows only when they do not overwrite pending local work.
 
-Conflict checks use update timestamps together with the device that last modified the row. Deletions are represented as tombstones first instead of immediately destroying the record, and stale deleted rows are pruned later.
+The production app also handles reconnect-triggered sync, app-resume sync, overlapping sync triggers, first-device hydration, remote account deletion, pending offline changes, and server-side entitlement changes.
 
-There is also explicit handling for:
+More detail is in **[docs/engineering.md](docs/engineering.md)**.
 
-- reconnect-triggered sync
-- app-resume sync
-- multiple sync triggers arriving while one is already running
-- first-device hydration before offline use is allowed
-- remote account deletion / revoked access
-- pending changes while offline
-- force-refresh events from server-side account or entitlement changes
-
-More of that is in [the engineering notes](docs/engineering.md).
+---
 
 ## architecture
 
@@ -185,31 +206,6 @@ Repositories
       Cloud Firestore
 ```
 
-The app is split by product feature, with shared local storage, repositories, services, diagnostics, localization, reporting, billing, and sync infrastructure underneath.
-
-```text
-lib/
-├── core/
-│   ├── local/
-│   ├── models/
-│   ├── repositories/
-│   ├── services/
-│   ├── diagnostics/
-│   └── utils/
-├── features/
-│   ├── auth/
-│   ├── onboarding/
-│   ├── dashboard/
-│   ├── orders/
-│   ├── customers/
-│   ├── settings/
-│   └── upgrade/
-├── shared/
-└── l10n/
-```
-
-## under the hood
-
 | Area | Choice |
 | --- | --- |
 | Mobile | Flutter / Dart |
@@ -217,7 +213,6 @@ lib/
 | Local database | Drift + SQLite |
 | Cloud | Firebase Authentication + Cloud Firestore |
 | Sync | Local outbox + dirty rows + merge-based refresh |
-| Connectivity | connectivity-aware sync triggers |
 | Analytics | Firebase Analytics |
 | Diagnostics | Crashlytics + Performance + structured app logging |
 | Documents | CSV + PDF + print/share pipelines |
@@ -225,32 +220,38 @@ lib/
 | Localization | Flutter gen-l10n + ARB |
 | Automation | GitHub Actions |
 
-## the wider product
+---
 
-The mobile app is only one part of the system.
+## commercial model
 
-Orderly also has a web side that handles the public product site, legal/support pages, store purchase verification, pricing configuration, and internal admin tooling. The mobile client can stay focused on the actual order workflow while server-side verification handles purchase state and account-level operations.
+Every new account starts with a full-feature **20-order trial**.
 
-That split also keeps store-specific logic out of the core order domain.
+**Orderly Pro Lifetime** is a one-time purchase that removes the order cap permanently. Cloud backup and sync are included during the trial and with Pro. Existing data stays accessible after the trial ends.
+
+There is no recurring subscription.
+
+---
 
 ## shipping it
 
-Orderly is live on both **iOS/iPadOS** and **Android**.
+Orderly is live on **iOS/iPadOS** and **Android**.
 
-The private production repository has CI that checks formatting, static analysis, pricing-model consistency, and the test suite on pushes and pull requests. Separate release automation handles mobile beta/release workflows.
+The private production repository has CI for formatting, static analysis, tests, pricing-model consistency, and release validation. The 1.13.2 release line also added an explicit build-time guard around store product configuration so a release artifact cannot silently ship with the Pro purchase path disabled.
 
-The public repo you are looking at is the product + engineering showcase. The production source stays private because it contains the commercial app, release configuration, and backend integration code.
+This public repository is the **product + engineering showcase**. The production source remains private because it contains commercial app code, backend integration, signing configuration, and release infrastructure.
+
+---
 
 ## one more thing
 
 The goal was never to build the most complicated order-management system possible.
 
-It was to make the common path boringly reliable:
+It was to make the common path reliably boring:
 
 > a customer sends an order → you log it → it stays there → you know what happens next.
 
-Making that statement stay true offline, across devices, across app restarts, and through conflicting edits is where most of the engineering went.
+Making that statement stay true offline, across devices, through app restarts, and through conflicting edits is where most of the engineering went.
 
 ---
 
-Built by [Senith Umesha](https://github.com/SenithUmesha) as one of those _“this should probably be an app”_ ideas that kept growing.
+Built by [Senith Umesha](https://github.com/SenithUmesha).
