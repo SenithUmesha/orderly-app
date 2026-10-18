@@ -32,20 +32,19 @@
 
 ---
 
-## current release
+## release status
 
-The private production app is currently at **Orderly 1.13.2 · build 92**.
+Orderly is available on the **App Store and Google Play**. The private mobile source is at **1.14.0+94**, with the 1.14.0 release candidate validated on Android and iOS. At the last confirmed checkpoint, Android build **94** was signed and ready for manual upload, while iOS build **95** was available in internal TestFlight. Public availability of 1.14.0 has not yet been confirmed.
 
-The latest release line focused on making the daily follow-up loop faster and clearer:
+**Preparing for 1.14.0:**
 
-- **Needs Attention** on Dashboard for overdue orders, due-today work, payment follow-ups, and unanswered customers
-- reusable, editable **WhatsApp message templates** with localized defaults
-- **Order Again** for repeat orders using the normal creation flow
-- **Recent and Favourite items** for faster order entry
-- persistent **Chat, Call, and More** actions while reviewing an order
-- clearer labelled receipt and reply actions
-- direct WhatsApp chat with no forced prefilled message
-- release-time billing configuration checks so Pro pricing and purchases remain available in production builds
+- Dedicated **Account & Security** settings, including provider-aware sign-in information and a separate contact email
+- Custom **app accent colors**, independent of receipt branding
+- **Full `.orderly` backup and restore** for supported business data and preferences
+- **System default**, English, Sinhala, Tamil, Spanish, and Brazilian Portuguese language choices
+- Simplified, fixed **Orderly Pro Lifetime** pricing at **US$49.99** as a store reference; checkout always shows the price provided by Apple or Google
+
+The established **1.13.x** improvements remain part of the app: Dashboard **Needs Attention**, editable customer messages, **Order Again**, recent/favourite items, and persistent order-detail actions. This showcase describes the product and engineering; it does not distribute the private production code or certify a store rollout.
 
 ---
 
@@ -101,7 +100,7 @@ Known customers can be filled from phone history. Recent and favourite items spe
 
 ### follow-up that stays actionable
 
-The latest release adds a dedicated **Needs Attention** surface to Dashboard. It brings together overdue work, orders due today, payment follow-ups, and unanswered customers with direct links back into matching order views.
+The 1.13.x line added a dedicated **Needs Attention** surface to Dashboard. It brings together overdue work, orders due today, payment follow-ups, and unanswered customers with direct links back into matching order views.
 
 Daily reminders can surface the same operational context and open Dashboard when tapped.
 
@@ -144,15 +143,15 @@ The dashboard focuses on operational information:
 
 Most cards deep-link back into filtered order views so analytics stay connected to an action.
 
-### built beyond one hard-coded market
+### local formats and language choices
 
-Seller-market configuration drives currency, date formatting, phone normalization, payment options, sample data, suggested cities, and courier hints.
+Seller-market settings drive local currency display, date formatting, phone normalization, payment options, sample data, and courier hints without changing the lifetime purchase price.
 
-The core UI is localized in **English, Sinhala, and Tamil**.
+The current public release includes **English, Sinhala, and Tamil**; **Spanish, Brazilian Portuguese, and System default** selection are part of the 1.14.0 release candidate.
 
 ### your data is not trapped
 
-Orderly supports CSV import/export, PDF export, printing, and receipt sharing.
+Orderly supports CSV import/export, PDF export, printing, and receipt sharing. The 1.14.0 release candidate also adds full `.orderly` backup/restore for supported orders, customers, business settings, and preferences.
 
 ---
 
@@ -228,7 +227,7 @@ Every new account starts with a full-feature **20-order trial**.
 
 **Orderly Pro Lifetime** is a one-time purchase that removes the order cap permanently. Cloud backup and sync are included during the trial and with Pro. Existing data stays accessible after the trial ends.
 
-There is no recurring subscription.
+The current reference price is **US$49.99**. Apple and Google provide the actual checkout price in the customer's store currency. There is no recurring subscription.
 
 ---
 
@@ -236,7 +235,7 @@ There is no recurring subscription.
 
 Orderly is live on **iOS/iPadOS** and **Android**.
 
-The private production repository has CI for formatting, static analysis, tests, pricing-model consistency, and release validation. The 1.13.2 release line also added an explicit build-time guard around store product configuration so a release artifact cannot silently ship with the Pro purchase path disabled.
+The private production repository has checks for formatting, static analysis, tests, purchase/restore, social-auth configuration, pricing-model consistency, and release validation. Its build-time checks help prevent a release artifact from silently shipping with the Pro purchase path disabled. The 1.14.0 release candidate passed 300 Flutter tests and 16 Firestore-rules tests.
 
 This public repository is the **product + engineering showcase**. The production source remains private because it contains commercial app code, backend integration, signing configuration, and release infrastructure.
 
